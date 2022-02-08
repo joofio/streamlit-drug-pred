@@ -8,6 +8,7 @@ import pickle
 from PIL import Image
 from rdkit import Chem
 from rdkit.Chem import Descriptors
+from rdkit.Chem import Draw
 
 ######################
 # Custom function
@@ -105,3 +106,9 @@ prediction = load_model.predict(X)
 st.header('Predicted LogS values')
 #prediction[1:] # Skips the dummy first item
 prediction
+
+m = Chem.MolFromSmiles(SMILES[0])
+im=Draw.MolToImage(m)
+st.header('First SMILES Product')
+
+st.image(im)
