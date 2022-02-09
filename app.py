@@ -9,6 +9,7 @@ from PIL import Image
 from rdkit import Chem
 from rdkit.Chem import Descriptors
 from rdkit.Chem import Draw
+import math
 
 ######################
 # Custom function
@@ -25,38 +26,66 @@ def AromaticProportion(m):
   AR = AromaticAtom/HeavyAtom
   return AR
 
-def generate(smiles, verbose=False):
+
+def generate_x(smiles, verbose=False):
 
     moldata= []
     for elem in smiles:
         mol=Chem.MolFromSmiles(elem)
         moldata.append(mol)
 
-    baseData= np.arange(1,1)
-    i=0
+    desc_MolLogP=[]
+    desc_MolWt=[]
+    desc_NumRotatableBonds=[]
+    desc_AromaticProportion=[]
+    print("len:",len(moldata))
+
     for mol in moldata:
 
-        desc_MolLogP = Descriptors.MolLogP(mol)
-        desc_MolWt = Descriptors.MolWt(mol)
-        desc_NumRotatableBonds = Descriptors.NumRotatableBonds(mol)
-        desc_AromaticProportion = AromaticProportion(mol)
+        desc_MolLogP.append(Descriptors.MolLogP(mol))
+        desc_MolWt.append(Descriptors.MolWt(mol))
+        desc_NumRotatableBonds.append(Descriptors.NumRotatableBonds(mol))
+        desc_AromaticProportion.append(AromaticProportion(mol))
 
-        row = np.array([desc_MolLogP,
-                        desc_MolWt,
-                        desc_NumRotatableBonds,
-                        desc_AromaticProportion])
 
-        if(i==0):
-            baseData=row
-        else:
-            baseData=np.vstack([baseData, row])
-        i=i+1
-
-    columnNames=["MolLogP","MolWt","NumRotatableBonds","AromaticProportion"]
-    descriptors = pd.DataFrame(data=baseData,columns=columnNames)
+    f={"MolLogP":desc_MolLogP,"MolWt":desc_MolWt,"NumRotatableBonds":desc_NumRotatableBonds,"AromaticProportion":desc_AromaticProportion}
+    descriptors = pd.DataFrame.from_dict(f)
 
     return descriptors
 
+def LogS_to_mg_ml(logs,mw):
+    """LogS is directly related to the water solubility of a drug and it is defined as a common solubility
+     unit corresponding to the 10-based logarithm of the solubility of a molecule measured in mol/L. 
+     The solubility and logS of a drug can be divided in:"""
+    mol=10**logs
+    print(mw)
+    return str(round(mol/mw*1000,3))+" mg/ml"
+    #1 g ----180
+    # x g ----1
+
+def mg_ml_to_logS(sol,mw,sol_unit):
+    """LogS is directly related to the water solubility of a drug and it is defined as a common solubility
+     unit corresponding to the 10-based logarithm of the solubility of a molecule measured in mol/L. 
+     The solubility and logS of a drug can be divided in:"""
+   #  less than 1 mg/mL at 73° F
+
+    mw=180.1590
+    #so mw is g/mol
+    #1 g --- 180
+    #1 mg --- X
+    mol=sol/mw
+
+    LogS=math.log10(mol)
+    return LogS
+
+def create_sum(logs,mws):
+    f=[]
+    for l,m in zip(logs,mws):
+        #print(l,m)
+        f.append(LogS_to_mg_ml(l,m))
+    return f
+
+    
 ######################
 # Page Title
 ######################
@@ -88,7 +117,7 @@ st.header('Input SMILES')
 
 ## Calculate molecular descriptors
 st.header('Computed molecular descriptors')
-X = generate(SMILES)
+X = generate_x(SMILES)
 X
 #X[1:] # Skips the dummy first item
 
@@ -101,14 +130,18 @@ load_model = pickle.load(open('solubility_model.pkl', 'rb'))
 
 # Apply model to make predictions
 prediction = load_model.predict(X)
-#prediction_proba = load_model.predict_proba(X)
+final_df=pd.DataFrame({"LogS":prediction})
+final_df["solubility"]=create_sum(prediction,X.iloc[:,1])
 
-st.header('Predicted LogS values')
+st.header('Predicted Solubility')
 #prediction[1:] # Skips the dummy first item
-prediction
+st.dataframe(final_df)
 
 m = Chem.MolFromSmiles(SMILES[0])
 im=Draw.MolToImage(m)
-st.header('First SMILES Product')
+
+st.header('First SMILES Product Visualized')
 
 st.image(im)
+
+
