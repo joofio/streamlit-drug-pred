@@ -38,15 +38,13 @@ def generate_x(smiles, verbose=False):
     desc_MolWt=[]
     desc_NumRotatableBonds=[]
     desc_AromaticProportion=[]
-    print("len:",len(moldata))
-
+    
+    #print("len:",len(moldata))
     for mol in moldata:
-
         desc_MolLogP.append(Descriptors.MolLogP(mol))
         desc_MolWt.append(Descriptors.MolWt(mol))
         desc_NumRotatableBonds.append(Descriptors.NumRotatableBonds(mol))
         desc_AromaticProportion.append(AromaticProportion(mol))
-
 
     f={"MolLogP":desc_MolLogP,"MolWt":desc_MolWt,"NumRotatableBonds":desc_NumRotatableBonds,"AromaticProportion":desc_AromaticProportion}
     descriptors = pd.DataFrame.from_dict(f)
@@ -58,7 +56,7 @@ def LogS_to_mg_ml(logs,mw):
      unit corresponding to the 10-based logarithm of the solubility of a molecule measured in mol/L. 
      The solubility and logS of a drug can be divided in:"""
     mol=10**logs
-    print(mw)
+   # print(mw)
     return str(round(mol/mw*1000,3))+" mg/ml"
     #1 g ----180
     # x g ----1
@@ -92,7 +90,7 @@ def create_sum(logs,mws):
 
 
 st.write("""
-# Molecular Solubility Prediction Web App
+# Molecular Solubility Prediction App
 This app predicts the **Solubility (LogS)** values of molecules!
 Data obtained from the John S. Delaney. [ESOL:  Estimating Aqueous Solubility Directly from Molecular Structure](https://pubs.acs.org/doi/10.1021/ci034243x). ***J. Chem. Inf. Comput. Sci.*** 2004, 44, 3, 1000-1005.
 ***
@@ -143,5 +141,3 @@ im=Draw.MolToImage(m)
 st.header('First SMILES Product Visualized')
 
 st.image(im)
-
-
